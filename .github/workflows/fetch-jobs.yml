@@ -1,0 +1,39 @@
+name: Fetch jobs
+
+on:
+  schedule:
+    - cron: "17 10 * * *"   # daily, ~6:17 AM US Eastern
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-jobs
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch postings from the last 72 hours
+        run: python scripts/fetch_jobs.py --hours 72
+
+      - name: Commit updated data
+        run: |
+          git config user.name  "jobfit-bot"
+          git config user.email "jobfit-bot@users.noreply.github.com"
+          git add data/jobs.json data/sources.json
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Update job data $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi
