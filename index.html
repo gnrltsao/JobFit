@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobFit · Fresh roles that match you</title>
+  <meta name="description" content="Upload a resume or paste your experience, and see only the jobs posted in the last 24–72 hours that score 4 or 5 out of 5 for fit.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230f6b5c'/><path d='M9 17l5 5 9-11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">✓</span>
+        <div>
+          <h1>JobFit</h1>
+          <p class="tag">Roles posted in the last 72 hours, scored 1–5 for fit. Only 4s and 5s are shown.</p>
+        </div>
+      </div>
+      <button type="button" id="freshness" class="freshness" title="See which job boards were reached">Loading job data…</button>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <form id="form" class="panel" autocomplete="off">
+      <section class="step">
+        <h2><span class="num">1</span> Your experience</h2>
+        <div class="seg" role="tablist">
+          <button type="button" role="tab" class="seg-btn active" data-mode="upload" aria-selected="true">Upload resume</button>
+          <button type="button" role="tab" class="seg-btn" data-mode="type" aria-selected="false">Type bullets</button>
+        </div>
+        <div id="mode-upload">
+          <label class="drop" id="drop">
+            <input type="file" id="file" accept=".pdf,.docx,.txt,.md">
+            <span class="drop-main">Drop a PDF, Word (.docx) or text file</span>
+            <span class="drop-sub">or click to choose. It's read inside your browser.</span>
+          </label>
+          <p id="file-status" class="hint"></p>
+        </div>
+        <div id="mode-type" hidden>
+          <textarea id="bullets" rows="9" placeholder="• Led a 12-person customer success team supporting $40M ARR&#10;• Cut onboarding time from 60 to 35 days by redesigning implementation playbooks&#10;• Built Salesforce and Gainsight health-score dashboards for exec QBRs&#10;• 10+ years in B2B SaaS, healthcare and fintech"></textarea>
+        </div>
+      </section>
+
+      <section class="step">
+        <h2><span class="num">2</span> What you're looking for</h2>
+        <label class="field">Target titles <span class="opt">optional, comma-separated</span>
+          <input id="titles" type="text" placeholder="Director of Customer Success, Strategic CSM, Implementation Manager">
+        </label>
+        <fieldset class="field checks">
+          <legend>Work arrangement</legend>
+          <label><input type="checkbox" id="wp-remote" checked> Remote</label>
+          <label><input type="checkbox" id="wp-hybrid" checked> Hybrid</label>
+          <label><input type="checkbox" id="wp-onsite" checked> On-site</label>
+        </fieldset>
+        <label class="field">Locations for hybrid / on-site <span class="opt">optional, comma-separated</span>
+          <input id="locations" type="text" placeholder="Boston, Cambridge, Worcester, Massachusetts">
+        </label>
+        <label class="field">Anything else that matters <span class="opt">optional</span>
+          <input id="notes" type="text" placeholder="Base salary $135K+, Senior Manager level or above, no travel over 25%">
+        </label>
+      </section>
+
+      <section class="step">
+        <h2><span class="num">3</span> Search settings</h2>
+        <div class="row2">
+          <label class="field">Posted within
+            <select id="window">
+              <option value="24">24 hours</option>
+              <option value="48">48 hours</option>
+              <option value="72" selected>72 hours</option>
+            </select>
+          </label>
+          <label class="field">Roles to score
+            <select id="topn">
+              <option value="20">Top 20</option>
+              <option value="40" selected>Top 40</option>
+              <option value="60">Top 60</option>
+              <option value="100">Top 100</option>
+            </select>
+          </label>
+        </div>
+        <label class="field checks inline"><input type="checkbox" id="incl-workday" checked> Include Workday listings <span class="badge exp">experimental</span></label>
+      </section>
+
+      <section class="step">
+        <h2><span class="num">4</span> Claude API key</h2>
+        <label class="field">Key
+          <input id="apikey" type="password" placeholder="sk-ant-…" spellcheck="false">
+        </label>
+        <div class="row2">
+          <label class="field">Model
+            <select id="model">
+              <option value="claude-sonnet-5-5" selected>Claude Sonnet 5.5 (balanced)</option>
+              <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (cheapest)</option>
+              <option value="claude-opus-5-5">Claude Opus 5.5 (most careful)</option>
+            </select>
+          </label>
+          <label class="field checks inline remember"><input type="checkbox" id="remember"> Remember key on this device</label>
+        </div>
+        <p class="hint">Your key and resume go straight from your browser to Anthropic's API. This site has no server and never sees them. Get a key at <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>.</p>
+      </section>
+
+      <button id="go" class="go" type="submit">Find my matches</button>
+      <p id="form-error" class="error" role="alert"></p>
+    </form>
+
+    <section class="results" aria-live="polite">
+      <div id="empty" class="empty">
+        <h2>How it works</h2>
+        <ol>
+          <li>Each morning, a scheduled job collects new postings from company career boards on Greenhouse, Lever, Ashby and Workday.</li>
+          <li>Your experience is compared against every posting in your time window, and the closest ones are shortlisted.</li>
+          <li>Claude scores each shortlisted role from 1 (no match) to 5 (strong match) and explains the score in one line.</li>
+          <li>Anything below 4 is removed.</li>
+        </ol>
+        <p class="hint">Coverage is limited to the employers in this site's list. See <a href="#" id="show-sources">sources</a> for which boards were reached today.</p>
+      </div>
+
+      <div id="progress" class="progress" hidden>
+        <div class="bar"><span id="bar-fill"></span></div>
+        <p id="progress-text">Starting…</p>
+      </div>
+
+      <div id="summary" class="summary" hidden></div>
+      <div id="list" class="list"></div>
+    </section>
+  </main>
+
+  <dialog id="sources-dialog">
+    <form method="dialog" class="dlg">
+      <h2>Sources from the latest run</h2>
+      <div id="sources-body">Loading…</div>
+      <button class="go small">Close</button>
+    </form>
+  </dialog>
+
+  <footer class="wrap foot">
+    <p>Listings come from public company job boards. Always confirm details on the employer's own page before applying. Workday results use an unofficial endpoint and may be incomplete.</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
